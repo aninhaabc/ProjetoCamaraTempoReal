@@ -21,7 +21,7 @@ setup(
     description="Analise da camera em tempo real",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="",  # URL do repositório do seu projeto (se houver)
+    url="https://github.com/aninhaabc/projcameratemporeal",  # URL do repositório do seu projeto (se houver)
     packages=find_packages(), # Encontra automaticamente todos os pacotes no diretório
     package_data={
     '': find_subdir(f'{MODULE_STUB}'),
