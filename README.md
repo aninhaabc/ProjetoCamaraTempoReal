@@ -42,8 +42,7 @@ Para rodar o projeto tem que está dentro do arquivo **camera_tempo_real.py**.
 
 3. **Executar o jogo**
     ```bash
-    camera_tempo_real 
-
+    cameratemporeal 
 
 ## 💻 Estrutura do Código
 A estrutura do código está organizada em módulos para facilitar a navegação e manutenção do projeto:

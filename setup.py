@@ -35,7 +35,7 @@ setup(
     python_requires='>=3.11',
     entry_points={
         'console_scripts': [
-            f'camera_tempo_real={MODULE_STUB}.camera_tempo_real:main',
+            f'cameratemporeal={MODULE_STUB}.camera_tempo_real:main',
         ],
     },
     install_requires=[  # Instala as dependências especificadas no requirements.txt
