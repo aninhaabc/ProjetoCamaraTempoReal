@@ -2,65 +2,40 @@ import numpy as np
 import cv2 as cv
 
 def rotacao_matriz(theta):
-    x = np.array([[np.cos(theta), -np.sin(theta), 0],
-                  [np.sin(theta), np.cos(theta), 0],
-                  [0, 0, 1]])
-    return x
+    return np.array([[np.cos(theta), -np.sin(theta)], 
+                     [np.sin(theta),  np.cos(theta)]])
 
 def cisalhamento_matriz(shx, shy):
-    cisalhar = np.array([[1, shx, 0],
-                         [shy, 1, 0],
-                         [0, 0, 1]])
-    return cisalhar
+    return np.array([[1, shx], 
+                     [shy, 1]])
 
-def aplicar_rotacao(image, angulo_rotacao):
+def aplicar_transformacao(image, matriz_transformacao):
     altura, largura = image.shape[:2]
     cx, cy = largura // 2, altura // 2
-    rotacao = rotacao_matriz(np.radians(angulo_rotacao))
-    imagem_rotacionada = np.zeros_like(image)
 
-    for y in range(altura):
-        for x in range(largura):
-            x_rel = x - cx
-            y_rel = y - cy
+    y, x = np.mgrid[0:altura, 0:largura]
+    coords = np.vstack([x.flatten() - cx, y.flatten() - cy])
 
-            x_rot = rotacao[0, 0] * x_rel + rotacao[0, 1] * y_rel
-            y_rot = rotacao[1, 0] * x_rel + rotacao[1, 1] * y_rel
+    novas_coords = matriz_transformacao @ coords
 
-            x_rot = int(x_rot + cx)
-            y_rot = int(y_rot + cy)
+    novas_coords[0, :] += cx
+    novas_coords[1, :] += cy
 
-            if 0 <= x_rot < largura and 0 <= y_rot < altura:
-                imagem_rotacionada[y, x] = image[y_rot, x_rot]
+    novas_coords = np.round(novas_coords).astype(int)
 
-    return imagem_rotacionada
+    x_novo, y_novo = novas_coords
+    dentro_limite = (0 <= x_novo) & (x_novo < largura) & (0 <= y_novo) & (y_novo < altura)
 
-def aplicar_cisalhamento(image, cisalhamento_x, cisalhamento_y):
-    altura, largura = image.shape[:2]
-    cx, cy = largura // 2, altura // 2
-    cisalhamento = cisalhamento_matriz(cisalhamento_x, cisalhamento_y)
-    imagem_cisalhada = np.zeros_like(image)
+    imagem_transformada = np.zeros_like(image)
+    imagem_transformada[y.flatten()[dentro_limite], x.flatten()[dentro_limite]] = \
+        image[y_novo[dentro_limite], x_novo[dentro_limite]]
 
-    for y in range(altura):
-        for x in range(largura):
-            x_rel = x - cx
-            y_rel = y - cy
-
-            x_cisalhado = cisalhamento[0, 0] * x_rel + cisalhamento[0, 1] * y_rel
-            y_cisalhado = cisalhamento[1, 0] * x_rel + cisalhamento[1, 1] * y_rel
-
-            x_cisalhado = int(x_cisalhado + cx)
-            y_cisalhado = int(y_cisalhado + cy)
-
-            if 0 <= x_cisalhado < largura and 0 <= y_cisalhado < altura:
-                imagem_cisalhada[y, x] = image[y_cisalhado, x_cisalhado]
-
-    return imagem_cisalhada
+    return imagem_transformada
 
 def run():
     camera = cv.VideoCapture(0)
-    width = 320
-    height = 240
+    width = 320*2
+    height = 240*2
 
     if not camera.isOpened():
         print("Não consegui abrir a câmera!")
@@ -82,17 +57,21 @@ def run():
         quadro = cv.resize(quadro, (width, height), interpolation=cv.INTER_AREA)
 
         if rotacao_ativa and not cisalhamento_ativo:
-            quadro_transformado = aplicar_rotacao(quadro, angulo_rotacao)
+            matriz_rotacao = rotacao_matriz(np.radians(angulo_rotacao))
+            quadro_transformado = aplicar_transformacao(quadro, matriz_rotacao)
             angulo_rotacao += velocidade_rotacao
             if angulo_rotacao >= 360:
                 angulo_rotacao = 0
 
         elif cisalhamento_ativo and not rotacao_ativa:
-            quadro_transformado = aplicar_cisalhamento(quadro, cisalhamento_x, cisalhamento_y)
+            matriz_cisalhamento = cisalhamento_matriz(cisalhamento_x, cisalhamento_y)
+            quadro_transformado = aplicar_transformacao(quadro, matriz_cisalhamento)
 
         elif cisalhamento_ativo and rotacao_ativa:
-            quadro_transformado = aplicar_rotacao(quadro, angulo_rotacao)
-            quadro_transformado = aplicar_cisalhamento(quadro_transformado, cisalhamento_x, cisalhamento_y)
+            matriz_rotacao = rotacao_matriz(np.radians(angulo_rotacao))
+            quadro_rotacionado = aplicar_transformacao(quadro, matriz_rotacao)
+            matriz_cisalhamento = cisalhamento_matriz(cisalhamento_x, cisalhamento_y)
+            quadro_transformado = aplicar_transformacao(quadro_rotacionado, matriz_cisalhamento)
             angulo_rotacao += velocidade_rotacao
             if angulo_rotacao >= 360:
                 angulo_rotacao = 0
@@ -122,8 +101,6 @@ def run():
 
         if key == ord('d'):
             velocidade_rotacao += 1
-
-        print(f"Velocidade: {velocidade_rotacao}")
 
     camera.release()
     cv.destroyAllWindows()
